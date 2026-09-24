@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Erros | E-commerce</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client (Versão 2) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-[#0b0f19] text-gray-100 selection:bg-indigo-600 selection:text-white">
+
+    <!-- LOGIN SCREEN COM IDGM -->
+    <div id="loginScreen" class="fixed inset-0 bg-[#0b0f19] z-[100] flex items-center justify-center p-4">
+        <div class="bg-[#111726] border border-[#1b263b] rounded-2xl max-w-md w-full p-8 space-y-6 shadow-2xl">
+            <div class="text-center space-y-2">
+                <div class="w-14 h-14 bg-[#1b263b] border border-[#2a3c5a] rounded-2xl flex items-center justify-center font-bold text-xl text-indigo-400 shadow-md mx-auto">
+                    RE
+                </div>
+                <h1 class="text-xl font-bold text-white tracking-tight">Registro de Erros</h1>
+                <p class="text-xs text-gray-400">Digite seu IDGM para acessar o sistema</p>
+            </div>
+
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-300 mb-1.5">IDGM do Colaborador <span class="text-red-500">*</span></label>
+                    <input type="text" id="loginIdgm" required placeholder="Ex: GM0018780" oninput="buscarColaboradorLogin(this.value)" class="w-full bg-[#172033] border border-[#273551] rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition uppercase">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-300 mb-1.5">Nome Identificado</label>
+                    <input type="text" id="loginNameDisplay" readonly placeholder="Aguardando IDGM..." class="w-full bg-[#172033]/60 border border-[#273551] rounded-xl px-4 py-3 text-sm text-gray-400 cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-300 mb-1.5">Tipo de Perfil (Automático)</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div id="loginRoleOp" class="py-3 px-4 rounded-xl text-xs font-bold border-2 border-[#273551] bg-[#172033] text-gray-500 transition flex flex-col items-center justify-center space-y-1 opacity-50">
+                            <span>Operação</span>
+                            <span class="text-[10px] text-gray-500 font-normal">Abertura de chamados</span>
+                        </div>
+                        <div id="loginRoleSup" class="py-3 px-4 rounded-xl text-xs font-bold border-2 border-[#273551] bg-[#172033] text-gray-500 transition flex flex-col items-center justify-center space-y-1 opacity-50">
+                            <span>Suporte</span>
+                            <span class="text-[10px] text-gray-500 font-normal">Gestão técnica</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="loginSubmitBtn" disabled class="w-full py-3 bg-indigo-600/50 cursor-not-allowed text-white text-sm font-semibold rounded-xl shadow-lg transition">
+                    Acessar Sistema
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Top Navigation Header -->
+    <header class="w-full bg-[#0d1322] border-b border-[#1b263b] px-6 py-3 flex items-center justify-between shadow-sm sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <span class="text-xs text-gray-400 font-medium">Registro de Erros | E-commerce</span>
+            <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </div>
+        <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 bg-[#172033] border border-[#273551] px-3 py-1.5 rounded-lg text-xs">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span id="headerUserName" class="text-gray-200 font-medium">Usuário</span>
+                <span id="headerUserRole" class="px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 text-[10px] font-bold">Operação</span>
+            </div>
+            <button onclick="logout()" title="Sair da Conta" class="p-1.5 bg-[#172033] hover:bg-red-950/40 border border-[#273551] hover:border-red-900/50 rounded-lg text-gray-400 hover:text-red-300 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Wrapper -->
+    <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 overflow-y-auto">
+        <!-- Logo & Subtitle Block -->
+        <div class="flex items-start space-x-4 mb-6">
+            <div class="w-12 h-12 bg-[#1b263b] border border-[#2a3c5a] rounded-xl flex items-center justify-center font-bold text-lg text-indigo-400 shadow-md">
+                RE
+            </div>
+            <div>
+                <h1 id="mainTitle" class="text-xl font-bold text-white tracking-tight">Registro de Erros</h1>
+                <p id="mainSubtitle" class="text-sm text-gray-400">Registre erros e ativações</p>
+            </div>
+        </div>
+
+        <!-- Internal Tabs -->
+        <div id="operationTabsHeader" class="flex border-b border-[#1b263b] mb-6">
+            <button onclick="switchTab('novo')" id="tabNovoBtn" class="pb-3 px-1 mr-8 text-sm font-semibold text-white border-b-2 border-indigo-500 transition">
+                Novo registro
+            </button>
+            <button onclick="switchTab('meus')" id="tabMeusBtn" class="pb-3 px-1 text-sm font-semibold text-gray-400 hover:text-gray-200 border-b-2 border-transparent transition flex items-center space-x-2">
+                <span id="tabMeusTitle">Registros gerais</span>
+                <span id="badgeCount" class="bg-[#1f293d] text-indigo-400 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: NEW RECORD FORM -->
+        <div id="tabNovoContent" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="cardErroPedido" onclick="selectCallType('Erro de pedido')" class="cursor-pointer p-4 rounded-xl border-2 border-indigo-500 bg-[#141c2e] transition shadow-md relative">
+                    <div class="absolute top-3 right-3 w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center">
+                        <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <h3 class="font-bold text-white text-base mb-1">Erro de pedido</h3>
+                    <p class="text-xs text-gray-400">Venda cancelada, pagamento, integração</p>
+                </div>
+                <div id="cardAtivacaoProduto" onclick="selectCallType('Ativação de produto')" class="cursor-pointer p-4 rounded-xl border-2 border-[#1f2a40] bg-[#111726] hover:border-[#33466d] transition shadow-md relative">
+                    <h3 class="font-bold text-white text-base mb-1">Ativação de produto</h3>
+                    <p class="text-xs text-gray-400">Item indisponível no canal</p>
+                </div>
+            </div>
+
+            <!-- Form Container -->
+            <form id="errorForm" onsubmit="handleFormSubmit(event)" class="bg-[#111726] border border-[#1b263b] rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1.5">
+                            Filial <span class="text-red-500">*</span>
+                        </label>
+                        <select id="filial" required class="w-full bg-[#172033] border border-[#273551] rounded-xl px-4 py-3 text-sm text-gray-100 focus:outline-none focus:border-indigo-500 transition">
+                            <option value="" disabled selected>Selecione a filial</option>
+                            <option value="1-BALSAS">1-BALSAS</option>
+                            <option value="4-GOIÁS">4-GOIÁS</option>
+                            <option value="7-COHAMA">7-COHAMA</option>
+                            <option value="11-CID. OPERÁRIA">11-CID. OPERÁRIA</option>
+                            <option value="12-RIO ANIL">12-RIO ANIL</option>
+                            <option value="13-ELETRO BACURI">13-ELETRO BACURI</option>
+                            <option value="19-SHOPPING DA ILHA">19-SHOPPING DA ILHA</option>
+                            <option value="23-CAJAZEIRAS">23-CAJAZEIRAS</option>
+                            <option value="27-SUPER TURU">27-SUPER TURU</option>
+                            <option value="29-JARDIM TROPICAL">29-JARDIM TROPICAL</option>
+                            <option value="30-BACANGA">30-BACANGA</option>
+                            <option value="31-PÁTIO NORTE">31-PÁTIO NORTE</option>
+                            <option value="34-HIPER RENASCENÇA">34-HIPER RENASCENÇA</option>
+                            <option value="55-ELETRO PRES. DUTRA">55-ELETRO PRES. DUTRA</option>
+                            <option value="56-ELETRO RUA DA PAZ">56-ELETRO RUA DA PAZ</option>
+                            <option value="57-ELETRO COHAB">57-ELETRO COHAB</option>
+                            <option value="59-ELETRO AÇAILÂNDIA">59-ELETRO AÇAILÂNDIA</option>
+                            <option value="62-ELETRO COHATRAC">62-ELETRO COHATRAC</option>
+                            <option value="63-ELETRO JOÃO PAULO">63-ELETRO JOÃO PAULO</option>
+                            <option value="64-ELETRO TIRIRICAL">64-ELETRO TIRIRICAL</option>
+                            <option value="65-ELETRO SANTA INÊS">65-ELETRO SANTA INÊS</option>
+                            <option value="67-ELETRO GRAJAU">67-ELETRO GRAJAU</option>
+                            <option value="68-ELETRO SANTA LUZIA E-COMMERCE">68-ELETRO SANTA LUZIA E-COMMERCE</option>
+                            <option value="69-ELETRO PEDREIRAS">69-ELETRO PEDREIRAS</option>
+                            <option value="71-ELETRO GETULIO VARGAS">71-ELETRO GETULIO VARGAS</option>
+                            <option value="73-ELETRO PRAÇA DE FÁTIMA">73-ELETRO PRAÇA DE FÁTIMA</option>
+                            <option value="75-ELETRO ANGELIM">75-ELETRO ANGELIM</option>
+                            <option value="76-ELETRO BERNARDO SAYAO">76-ELETRO BERNARDO SAYAO</option>
+                            <option value="77-ELETRO MERCADO CENTRAL">77-ELETRO MERCADO CENTRAL</option>
+                            <option value="79-ELETRO LAGO DA PEDRA">79-ELETRO LAGO DA PEDRA</option>
+                            <option value="92-MIX BACURI">92-MIX BACURI</option>
+                            <option value="93-MIX MAIOBÃO">93-MIX MAIOBÃO</option>
+                            <option value="131-ELETRO BACABAL">131-ELETRO BACABAL</option>
+                            <option value="139-ELETRO BARRA DO CORDA">139-ELETRO BARRA DO CORDA</option>
+                            <option value="144-ELETRO MAIOBÃO">144-ELETRO MAIOBÃO</option>
+                            <option value="146-ELETRO ESTREITO">146-ELETRO ESTREITO</option>
+                            <option value="149-ELETRO SÃO JOSÉ DE RIBAMAR">149-ELETRO SÃO JOSÉ DE RIBAMAR</option>
+                            <option value="157-ELETRO TIJUPA">157-ELETRO TIJUPA</option>
+                            <option value="160-ELETRO GUAJAJARAS">160-ELETRO GUAJAJARAS</option>
+                            <option value="163-ELETRO COROATÁ">163-ELETRO COROATÁ</option>
+                            <option value="164-ELETRO TIMON">164-ELETRO TIMON</option>
+                            <option value="165-ELETRO VIANA">165-ELETRO VIANA</option>
+                            <option value="170-ELETRO SÃO MATEUS">170-ELETRO SÃO MATEUS</option>
+                            <option value="175-ELETRO BARREIRINHAS">175-ELETRO BARREIRINHAS</option>
+                            <option value="177-ELETRO ITAPECURU">177-ELETRO ITAPECURU</option>
+                            <option value="178-ELETRO PINHEIRO">178-ELETRO PINHEIRO</option>
+                            <option value="182-ELETRO S. SEBASTIÃO">182-ELETRO S. SEBASTIÃO</option>
+                            <option value="183-ELETRO TERESINA KENNEDY">183-ELETRO TERESINA KENNEDY</option>
+                            <option value="187-ELETRO CURVA">187-ELETRO CURVA</option>
+                            <option value="188-ELETRO BURITICUPU">188-ELETRO BURITICUPU</option>
+                            <option value="189-ELETRO PRESIDENTE DUTRA II">189-ELETRO PRESIDENTE DUTRA II</option>
+                            <option value="192-ELETRO VARGEM GRANDE">192-ELETRO VARGEM GRANDE</option>
+                            <option value="196-ELETRO VITORINO FREIRE">196-ELETRO VITORINO FREIRE</option>
+                            <option value="198-ELETRO FORQUILHA">198-ELETRO FORQUILHA</option>
+                            <option value="199-ELETRO CHAPADINHA">199-ELETRO CHAPADINHA</option>
+                            <option value="215-SUPER COELHO NETO">215-SUPER COELHO NETO</option>
+                            <option value="258-HIPER JOAO XXIII">258-HIPER JOAO XXIII</option>
+                            <option value="601-ELETRO FLORIANO SAMBAIBA">601-ELETRO FLORIANO SAMBAIBA</option>
+                            <option value="602-ELETRO TERESINA CEASA">602-ELETRO TERESINA CEASA</option>
+                            <option value="605-ELETRO RUA GRANDE">605-ELETRO RUA GRANDE</option>
+                            <option value="606-ELETRO MAURO FECURY">606-ELETRO MAURO FECURY</option>
+                            <option value="616-ELETRO TUTOIA CENTRO">616-ELETRO TUTOIA CENTRO</option>
+                            <option value="618-ELETRO TIMON ALVORADA">618-ELETRO TIMON ALVORADA</option>
+                            <option value="621-ELETRO ALTOS">621-ELETRO ALTOS</option>
+                            <option value="622-ELETRO UNIÃO PI">622-ELETRO UNIÃO PI</option>
+                            <option value="623-ELETRO VILA LUIZÃO">623-ELETRO VILA LUIZÃO</option>
+                            <option value="624-ELETRO PARQUE VITÓRIA">624-ELETRO PARQUE VITÓRIA</option>
+                            <option value="625-ELETRO ZÉ DOCA">625-ELETRO ZÉ DOCA</option>
+                            <option value="626-ELETRO CAROLINA CENTRO">626-ELETRO CAROLINA CENTRO</option>
+                            <option value="631-ELETRO SANTA INES CANAA">631-ELETRO SANTA INES CANAA</option>
+                            <option value="635-ELETRO CIDADE OLIMPICA">635-ELETRO CIDADE OLIMPICA</option>
+                            <option value="636-ELETRO BALSAS POTOSI">636-ELETRO BALSAS POTOSI</option>
+                            <option value="637-ELETRO ARAÇAGY">637-ELETRO ARAÇAGY</option>
+                            <option value="645-ELETRO RAPOSA">645-ELETRO RAPOSA</option>
+                            <option value="650-ELETRO CURURUPU">650-ELETRO CURURUPU</option>
+                            <option value="651-ELETRO ROSARIO">651-ELETRO ROSARIO</option>
+                            <option value="2034-ELETRO E-COMMERCE COELHO NETO">2034-ELETRO E-COMMERCE COELHO NETO</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1.5">
+                            Nº do pedido <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="numeroPedido" required placeholder="Ex.: 2026091012034037" class="w-full bg-[#172033] border border-[#273551] rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1.5">
+                            Canal <span class="text-red-500">*</span>
+                        </label>
+                        <select id="canal" required class="w-full bg-[#172033] border border-[#273551] rounded-xl px-4 py-3 text-sm text-gray-100 focus:outline-none focus:border-indigo-500 transition">
+                            <option value="" disabled selected>Selecione</option>
+                            <option value="Pagamento presencial (Loja)">Pagamento presencial (Loja)</option>
+                            <option value="Via Link">Via Link</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1.5">
+                            Tipo de erro <span class="text-red-500">*</span>
+                        </label>
+                        <select id="tipoErro" required class="w-full bg-[#172033] border border-[#273551] rounded-xl px-4 py-3 text-sm text-gray-100 focus:outline-none focus:border-indigo-500 transition">
+                            <option value="" disabled selected>Selecione</option>
+                            <option value="Cancelado indevidamente">Cancelado indevidamente</option>
+                            <option value="Falha no pagamento">Falha no pagamento</option>
+                            <option value="Divergência de valor">Divergência de valor</option>
+                            <option value="Item faltando ou divergente">Item faltando ou divergente</option>
+                            <option value="Pedido não integrado">Pedido não integrado</option>
+                            <option value="Status travado">Status travado</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">
+                        Mensagem exata do sistema <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="mensagemSistema" required rows="4" placeholder="Cole aqui a mensagem de erro exata..." class="w-full bg-[#172033] border border-[#273551] rounded-xl p-4 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition resize-none"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Cliente aguardando? <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex space-x-3">
+                            <button type="button" onclick="setRadio('clienteAguardando', 'Sim', this)" class="flex-1 py-2.5 px-4 bg-[#172033] hover:bg-[#202c44] border border-[#273551] rounded-xl text-sm font-medium text-gray-300 transition radio-btn-cliente">Sim</button>
+                            <button type="button" onclick="setRadio('clienteAguardando', 'Não', this)" class="flex-1 py-2.5 px-4 bg-[#172033] hover:bg-[#202c44] border border-[#273551] rounded-xl text-sm font-medium text-gray-300 transition radio-btn-cliente">Não</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Pagamento já cobrado? <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex space-x-2">
+                            <button type="button" onclick="setRadio('pagamentoCobrado', 'Sim', this)" class="flex-1 py-2.5 px-2 bg-[#172033] hover:bg-[#202c44] border border-[#273551] rounded-xl text-sm font-medium text-gray-300 transition radio-btn-pagamento">Sim</button>
+                            <button type="button" onclick="setRadio('pagamentoCobrado', 'Não', this)" class="flex-1 py-2.5 px-2 bg-[#172033] hover:bg-[#202c44] border border-[#273551] rounded-xl text-sm font-medium text-gray-300 transition radio-btn-pagamento">Não</button>
+                            <button type="button" onclick="setRadio('pagamentoCobrado', 'Não sei', this)" class="flex-1 py-2.5 px-2 bg-[#172033] hover:bg-[#202c44] border border-[#273551] rounded-xl text-sm font-medium text-gray-300 transition radio-btn-pagamento">Não sei</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1.5">
+                        O que precisa <span class="text-red-500">*</span>
+                    </label>
+                    <select id="oQuePrecisa" required class="w-full bg-[#172033] border border-[#273551] rounded-xl px-4 py-3 text-sm text-gray-100 focus:outline-none focus:border-indigo-500 transition">
+                        <option value="" disabled selected>Selecione</option>
+                        <option value="Reativação do pedido">Reativação do pedido</option>
+                        <option value="Estorno / Reembolso">Estorno / Reembolso</option>
+                        <option value="Correção de pagamento">Correção de pagamento</option>
+                        <option value="Análise de suporte técnico">Análise de suporte técnico</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1.5">Observações</label>
+                    <textarea id="observacoes" rows="3" placeholder="Informações adicionais relevantes..." class="w-full bg-[#172033] border border-[#273551] rounded-xl p-4 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1.5">
+                        Print da tela do erro <span class="text-red-500">*</span>
+                    </label>
+                    <div class="border-2 border-dashed border-[#273551] bg-[#151d30] rounded-xl p-6 text-center hover:border-indigo-500 transition relative">
+                        <input type="file" id="printErro" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="previewImage(event)">
+                        <div id="uploadPlaceholder" class="flex flex-col items-center justify-center space-y-2">
+                            <button type="button" class="px-4 py-2 bg-[#1f2a40] hover:bg-[#283654] border border-[#33466d] rounded-lg text-sm font-medium text-white transition pointer-events-none shadow-sm">
+                                Anexar print
+                            </button>
+                            <p class="text-xs text-gray-400">Arraste uma imagem ou clique para selecionar</p>
+                        </div>
+                        <div id="imagePreviewContainer" class="hidden flex flex-col items-center justify-center space-y-3">
+                            <img id="previewImg" src="" alt="Preview" class="max-h-40 rounded-lg border border-[#33466d] shadow-md object-contain">
+                            <button type="button" onclick="removeImage(event)" class="text-xs text-red-400 hover:text-red-300 font-medium bg-red-950/40 border border-red-900/50 px-3 py-1 rounded-md transition">
+                                Remover imagem
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end space-x-4 pt-4 border-t border-[#1b263b]">
+                    <button type="button" onclick="resetForm()" class="px-6 py-2.5 bg-[#172033] hover:bg-[#202c44] border border-[#273551] rounded-xl text-sm font-medium text-gray-300 transition">
+                        Limpar
+                    </button>
+                    <button type="submit" id="submitBtnForm" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition">
+                        Registrar
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- TAB 2: RECORDS / SUPPORT MANAGEMENT -->
+        <div id="tabMeusContent" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 id="sectionTitle" class="text-lg font-bold text-white">Registros Realizados</h2>
+                    <p id="sectionSubtitle" class="text-xs text-gray-400">Acompanhe o status e prazos</p>
+                </div>
+                <div class="flex items-center space-x-2 flex-wrap gap-2">
+                    <button onclick="exportToExcel()" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition flex items-center space-x-1.5 shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span>Extrair Excel (CSV)</span>
+                    </button>
+                    <button onclick="filterRecords('todos')" id="filterAll" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition">Todos</button>
+                    <button onclick="filterRecords('Urgente')" id="filterUrgente" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#172033] text-gray-300 hover:bg-[#202c44] border border-[#273551] transition">Urgentes</button>
+                </div>
+            </div>
+
+            <!-- ABAS DE VISUALIZAÇÃO INTERNA -->
+            <div class="flex border-b border-[#1b263b] space-x-6">
+                <button onclick="switchRecordSubTab('abertos')" id="subTabAbertosBtn" class="pb-2.5 text-xs font-bold uppercase tracking-wider text-indigo-400 border-b-2 border-indigo-500 transition flex items-center space-x-2">
+                    <span>Em Aberto / Andamento</span>
+                    <span id="openCountBadgeTab" class="px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 text-[10px] font-bold">0</span>
+                </button>
+                <button onclick="switchRecordSubTab('historico')" id="subTabHistoricoBtn" class="pb-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-gray-200 border-b-2 border-transparent transition flex items-center space-x-2">
+                    <span>Concluídos e Cancelados (Histórico)</span>
+                    <span id="closedCountBadgeTab" class="px-2 py-0.5 rounded-full bg-[#172033] text-gray-400 text-[10px] font-bold">0</span>
+                </button>
+            </div>
+
+            <!-- FILTRO DINÂMICO DE STATUS -->
+            <div id="statusFiltersContainer" class="flex items-center space-x-2 overflow-x-auto pb-2 text-xs"></div>
+
+            <!-- SEÇÃO ABERTOS -->
+            <div id="subTabAbertosContent" class="space-y-3">
+                <div id="openRecordsContainer" class="space-y-4"></div>
+                <div id="emptyOpenState" class="hidden text-center py-12 bg-[#111726]/50 border border-[#1b263b] rounded-2xl border-dashed">
+                    <p class="text-xs text-gray-400 font-medium">Nenhum chamado correspondente neste filtro.</p>
+                </div>
+            </div>
+
+            <!-- SEÇÃO HISTÓRICO -->
+            <div id="subTabHistoricoContent" class="hidden space-y-3">
+                <div id="closedRecordsContainer" class="space-y-4 opacity-90"></div>
+                <div id="emptyClosedState" class="hidden text-center py-12 bg-[#111726]/30 border border-[#1b263b]/60 rounded-2xl border-dashed">
+                    <p class="text-xs text-gray-500 font-medium">Nenhum chamado correspondente neste filtro.</p>
+                </div>
+            </div>
+
+            <!-- ESTADO VAZIO GERAL -->
+            <div id="emptyState" class="hidden text-center py-16 bg-[#111726] border border-[#1b263b] rounded-2xl">
+                <h3 class="text-base font-semibold text-gray-300 mb-1">Nenhum registro encontrado</h3>
+                <button onclick="switchTab('novo')" id="emptyStateBtn" class="mt-3 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition">
+                    Criar novo registro
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#111726] border border-[#273551] rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-[#1b263b] pb-4">
+                <div>
+                    <span id="modalId" class="text-xs font-bold text-indigo-400 uppercase tracking-wider">REGISTRO</span>
+                    <h3 id="modalTitle" class="text-lg font-bold text-white mt-0.5">Detalhes do Chamado</h3>
+                </div>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white p-1.5 rounded-lg bg-[#172033] border border-[#273551] transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div id="supportControlPanel" class="bg-[#172033] border border-[#273551] rounded-xl p-4 space-y-3 hidden">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-indigo-300 uppercase tracking-wide">Painel Restrito de Suporte</span>
+                    <span id="modalStatusBadge" class="px-2.5 py-1 rounded text-xs font-semibold bg-amber-950/60 text-amber-400 border border-amber-900/55">Aguardando Suporte</span>
+                </div>
+                <div id="supportActionButtons" class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                    <button type="button" onclick="updateTicketStatus('Aguardando Suporte')" class="py-2 px-3 rounded-lg text-xs font-medium bg-[#111726] hover:bg-[#1f2a40] border border-[#273551] text-gray-300 transition">Aguardando Suporte</button>
+                    <button type="button" onclick="updateTicketStatus('Em andamento')" class="py-2 px-3 rounded-lg text-xs font-medium bg-[#111726] hover:bg-[#1f2a40] border border-[#273551] text-blue-400 transition">Em andamento</button>
+                    <button type="button" onclick="updateTicketStatus('Concluído')" class="py-2 px-3 rounded-lg text-xs font-medium bg-[#111726] hover:bg-[#1f2a40] border border-[#273551] text-emerald-400 transition">Concluído</button>
+                    <button type="button" onclick="updateTicketStatus('Cancelado pedido')" class="py-2 px-3 rounded-lg text-xs font-medium bg-[#111726] hover:bg-[#1f2a40] border border-[#273551] text-red-400 transition">Cancelado pedido</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                <div class="bg-[#172033] p-3 rounded-xl border border-[#273551]">
+                    <span class="block text-[11px] text-gray-400">Filial</span>
+                    <strong id="modalFilial" class="text-gray-100 text-xs">--</strong>
+                </div>
+                <div class="bg-[#172033] p-3 rounded-xl border border-[#273551]">
+                    <span class="block text-[11px] text-gray-400">Nº do Pedido</span>
+                    <strong id="modalPedido" class="text-gray-100 font-mono text-xs">--</strong>
+                </div>
+                <div class="bg-[#172033] p-3 rounded-xl border border-[#273551]">
+                    <span class="block text-[11px] text-gray-400">Canal</span>
+                    <strong id="modalCanal" class="text-gray-100 text-xs">--</strong>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div class="bg-[#172033] p-3 rounded-xl border border-[#273551]">
+                    <span class="block text-[11px] text-gray-400">Cliente Aguardando</span>
+                    <strong id="modalClienteAguardando" class="text-gray-100 text-xs">--</strong>
+                </div>
+                <div class="bg-[#172033] p-3 rounded-xl border border-[#273551]">
+                    <span class="block text-[11px] text-gray-400">Pagamento Cobrado</span>
+                    <strong id="modalPagamentoCobrado" class="text-gray-100 text-xs">--</strong>
+                </div>
+                <div class="bg-[#172033] p-3 rounded-xl border border-[#273551] col-span-2">
+                    <span class="block text-[11px] text-gray-400">O que precisa</span>
+                    <strong id="modalOQuePrecisa" class="text-indigo-300 text-xs">--</strong>
+                </div>
+            </div>
+
+            <div id="modalObservacoesContainer" class="bg-[#172033] p-3 rounded-xl border border-[#273551]">
+                <span class="block text-[11px] text-gray-400">Observações da Operação</span>
+                <p id="modalObservacoes" class="text-xs text-gray-200 mt-0.5">Nenhuma observação.</p>
+            </div>
+
+            <div class="space-y-3">
+                <div class="bg-[#172033] p-4 rounded-xl border border-[#273551]">
+                    <span class="block text-xs text-gray-400 mb-1">Mensagem Exata do Sistema</span>
+                    <p id="modalMensagem" class="text-sm text-gray-200 font-mono bg-[#0c101d] p-3 rounded-lg border border-[#222f49] whitespace-pre-wrap">--</p>
+                </div>
+                
+                <div class="bg-[#172033] p-4 rounded-xl border border-[#273551] space-y-3">
+                    <label class="block text-xs font-bold text-indigo-300">Histórico de Mensagens e Respostas</label>
+                    <div id="modalSupportNotesDisplay" class="bg-[#0c101d] p-3 rounded-lg border border-[#222f49] text-xs text-gray-300 max-h-40 overflow-y-auto space-y-3">Nenhuma mensagem ainda.</div>
+                    
+                    <div id="replySection" class="space-y-3 pt-2 border-t border-[#273551]">
+                        <textarea id="modalSupportNotes" rows="2" placeholder="Digite sua resposta ou orientações..." class="w-full bg-[#0c101d] border border-[#273551] rounded-xl p-3 text-xs text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition resize-none"></textarea>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <label class="cursor-pointer px-3 py-1.5 bg-[#151d30] hover:bg-[#1f2a40] border border-[#273551] rounded-lg text-xs font-medium text-indigo-300 transition flex items-center space-x-1.5">
+                                    <span id="replyFileLabel">Anexar imagem (opcional)</span>
+                                    <input type="file" id="replyImageInput" accept="image/*" class="hidden" onchange="previewReplyImage(event)">
+                                </label>
+                                <button type="button" id="removeReplyImgBtn" onclick="clearReplyImage()" class="hidden text-xs text-red-400 hover:text-red-300">Remover</button>
+                            </div>
+                            <button type="button" onclick="sendSupportMessage()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition shadow-md">
+                                Enviar Resposta
+                            </button>
+                        </div>
+                        <div id="replyImgPreviewBox" class="hidden">
+                            <img id="replyImgPreview" src="" alt="Anexo" class="max-h-24 rounded-lg border border-[#273551] object-contain">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="operationActionPanel" class="bg-[#172033] p-4 rounded-xl border border-[#273551] space-y-3">
+                    <span class="block text-xs font-bold text-indigo-300 uppercase tracking-wide">Ações da Operação</span>
+                    <div id="cancelReasonContainer" class="space-y-2">
+                        <input type="text" id="cancelReasonInput" placeholder="Informe o motivo do cancelamento do pedido..." class="w-full bg-[#0c101d] border border-[#273551] rounded-xl px-3 py-2 text-xs text-gray-100 placeholder-gray-500 focus:outline-none focus:border-red-500 transition">
+                        <div class="flex space-x-2">
+                            <button type="button" onclick="operationCancelOrder()" class="flex-1 py-2 bg-red-950/60 hover:bg-red-900/60 border border-red-900/50 text-red-300 text-xs font-semibold rounded-xl transition">
+                                Cancelar Pedido
+                            </button>
+                            <button type="button" onclick="operationResolveOrder()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition">
+                                Pedido Resolvido
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="modalPrintSection" class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-400">Print Anexado pelo Solicitante</span>
+                </div>
+                <div class="bg-[#172033] border border-[#273551] rounded-xl p-3 flex justify-center cursor-pointer group" onclick="openImageViewer()">
+                    <img id="modalImg" src="" alt="Print" class="max-h-40 rounded-lg object-contain border border-[#273551]">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-[#1b263b]">
+                <div class="text-xs text-gray-400">
+                    Aberto em: <strong id="modalData" class="text-gray-200">--</strong>
+                </div>
+                <button onclick="closeModal()" class="px-4 py-2 bg-[#1f2a40] hover:bg-[#283654] text-white text-xs font-semibold rounded-xl border border-[#33466d] transition">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Image Viewer -->
+    <div id="imageViewModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4" onclick="closeImageViewer()">
+        <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center">
+            <img id="fullScreenImg" src="" alt="Print Ampliado" class="max-w-full max-h-[85vh] rounded-xl border border-gray-700 object-contain shadow-2xl">
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-[#172033] border border-indigo-500/50 text-white px-4 py-3 rounded-xl shadow-2xl transform translate-y-24 opacity-0 transition-all duration-300 z-50 flex items-center space-x-3 text-xs">
+        <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+        <span id="toastMessage">Operação realizada com sucesso!</span>
+    </div>
+
+    <script>
+        // ================= CONFIGURAÇÃO DO SUPABASE =================
+        const SUPABASE_URL = 'https://vxngbkbhgkecmkzboprk.supabase.co'; // Ex: 'https://xyz.supabase.co'
+        const SUPABASE_ANON_KEY = 'sb_publishable_C8PR_V8VYPPAaEKEg7jJTw_ZwZyGiwQ'; // Ex: 'eyJhbGciOiJIUzI1...'
+
+        const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // ============================================================
+
+        let currentCallType = 'Erro de pedido';
+        let loggedUser = JSON.parse(localStorage.getItem('ecommerce_logged_user') || 'null');
+        let activeRecordId = null;
+        let formDataState = { clienteAguardando: null, pagamentoCobrado: null, imageFile: null };
+        let replyImageFile = null;
+        let records = [];
+        let currentRecordSubTab = 'abertos';
+        let currentStatusFilter = 'todos';
+
+        window.onload = async function() {
+            if (!loggedUser) {
+                document.getElementById('loginScreen').classList.remove('hidden');
+            } else {
+                document.getElementById('loginScreen').classList.add('hidden');
+                applyUserSession();
+            }
+            await carregarRegistrosDoSupabase();
+            renderStatusFilters();
+            renderRecords();
+        };
+
+        function formatarNomeResumido(nomeCompleto) {
+            if (!nomeCompleto) return "";
+            const partes = nomeCompleto.trim().split(/\s+/);
+            if (partes.length === 1) return partes[0].toUpperCase();
+            return `${partes[0]} ${partes[partes.length - 1]}`.toUpperCase();
+        }
+
+        // BUSCAR COLABORADOR DIRETO DO SUPABASE NO LOGIN
+        async function buscarColaboradorLogin(val) {
+            const idgm = val.trim().toUpperCase();
+            const nameDisplay = document.getElementById('loginNameDisplay');
+            const btnOp = document.getElementById('loginRoleOp');
+            const btnSup = document.getElementById('loginRoleSup');
+            const submitBtn = document.getElementById('loginSubmitBtn');
+
+            nameDisplay.value = '';
+            btnOp.className = "py-3 px-4 rounded-xl text-xs font-bold border-2 border-[#273551] bg-[#172033] text-gray-500 transition flex flex-col items-center justify-center space-y-1 opacity-50";
+            btnSup.className = "py-3 px-4 rounded-xl text-xs font-bold border-2 border-[#273551] bg-[#172033] text-gray-500 transition flex flex-col items-center justify-center space-y-1 opacity-50";
+            submitBtn.disabled = true;
+            submitBtn.className = "w-full py-3 bg-indigo-600/50 cursor-not-allowed text-white text-sm font-semibold rounded-xl shadow-lg transition";
+
+            if (idgm.length < 4) return;
+
+            try {
+                const { data, error } = await _supabase
+                    .from('colaboradores')
+                    .select('*')
+                    .eq('idgm', idgm)
+                    .single();
+
+                if (error || !data) return;
+
+                nameDisplay.value = formatarNomeResumido(data.nome_completo);
+                window.tempColabData = data;
+
+                if (data.perfil === 'Operação') {
+                    btnOp.className = "py-3 px-4 rounded-xl text-xs font-bold border-2 border-indigo-500 bg-indigo-600/20 text-white transition flex flex-col items-center justify-center space-y-1 opacity-100";
+                } else {
+                    btnSup.className = "py-3 px-4 rounded-xl text-xs font-bold border-2 border-indigo-500 bg-indigo-600/20 text-white transition flex flex-col items-center justify-center space-y-1 opacity-100";
+                }
+
+                submitBtn.disabled = false;
+                submitBtn.className = "w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-600/30 transition cursor-pointer";
+            } catch (err) {
+                console.error("Erro ao buscar colaborador:", err);
+            }
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            if (!window.tempColabData) return;
+
+            const colab = window.tempColabData;
+            const nomeResumido = formatarNomeResumido(colab.nome_completo);
+
+            loggedUser = { idgm: colab.idgm, name: nomeResumido, fullName: colab.nome_completo, role: colab.perfil };
+            localStorage.setItem('ecommerce_logged_user', JSON.stringify(loggedUser));
+            
+            document.getElementById('loginScreen').classList.add('hidden');
+            applyUserSession();
+            showToast(`Bem-vindo, ${nomeResumido}! (${colab.perfil})`);
+        }
+
+        function logout() {
+            localStorage.removeItem('ecommerce_logged_user');
+            window.location.reload();
+        }
+
+        function applyUserSession() {
+            if (!loggedUser) return;
+            document.getElementById('headerUserName').innerText = loggedUser.name;
+            document.getElementById('headerUserRole').innerText = loggedUser.role;
+
+            const tabNovoContent = document.getElementById('tabNovoContent');
+            const operationTabsHeader = document.getElementById('operationTabsHeader');
+            const sectionTitle = document.getElementById('sectionTitle');
+            const sectionSubtitle = document.getElementById('sectionSubtitle');
+            const emptyStateBtn = document.getElementById('emptyStateBtn');
+
+            if (loggedUser.role === 'Suporte') {
+                tabNovoContent.classList.add('hidden');
+                operationTabsHeader.classList.add('hidden');
+                sectionTitle.innerText = "Painel da Equipe de Suporte";
+                sectionSubtitle.innerText = "Gerencie chamados e altere status técnicos";
+                emptyStateBtn.style.display = 'none';
+                switchTab('meus');
+            } else {
+                operationTabsHeader.classList.remove('hidden');
+                sectionTitle.innerText = "Registros Realizados";
+                sectionSubtitle.innerText = "Acompanhe o status e prazos";
+                emptyStateBtn.style.display = 'inline-block';
+                switchTab('novo');
+            }
+        }
+
+        function selectCallType(type) {
+            currentCallType = type;
+            const cardPedido = document.getElementById('cardErroPedido');
+            const cardAtivacao = document.getElementById('cardAtivacaoProduto');
+            if (type === 'Erro de pedido') {
+                cardPedido.className = "cursor-pointer p-4 rounded-xl border-2 border-indigo-500 bg-[#141c2e] transition shadow-md relative";
+                cardPedido.innerHTML = `<div class="absolute top-3 right-3 w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center"><svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div><h3 class="font-bold text-white text-base mb-1">Erro de pedido</h3><p class="text-xs text-gray-400">Venda cancelada, pagamento, integração</p>`;
+                cardAtivacao.className = "cursor-pointer p-4 rounded-xl border-2 border-[#1f2a40] bg-[#111726] hover:border-[#33466d] transition shadow-md relative";
+                cardAtivacao.innerHTML = `<h3 class="font-bold text-white text-base mb-1">Ativação de produto</h3><p class="text-xs text-gray-400">Item indisponível no canal</p>`;
+            } else {
+                cardAtivacao.className = "cursor-pointer p-4 rounded-xl border-2 border-indigo-500 bg-[#141c2e] transition shadow-md relative";
+                cardAtivacao.innerHTML = `<div class="absolute top-3 right-3 w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center"><svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div><h3 class="font-bold text-white text-base mb-1">Ativação de produto</h3><p class="text-xs text-gray-400">Item indisponível no canal</p>`;
+                cardPedido.className = "cursor-pointer p-4 rounded-xl border-2 border-[#1f2a40] bg-[#111726] hover:border-[#33466d] transition shadow-md relative";
+                cardPedido.innerHTML = `<h3 class="font-bold text-white text-base mb-1">Erro de pedido</h3><p class="text-xs text-gray-400">Venda cancelada, pagamento, integração</p>`;
+            }
+        }
+
+        function switchTab(tab) {
+            const tabNovoBtn = document.getElementById('tabNovoBtn');
+            const tabMeusBtn = document.getElementById('tabMeusBtn');
+            const tabNovoContent = document.getElementById('tabNovoContent');
+            const tabMeusContent = document.getElementById('tabMeusContent');
+
+            if (loggedUser && loggedUser.role === 'Suporte') {
+                tabMeusContent.classList.remove('hidden');
+                tabNovoContent.classList.add('hidden');
+                renderRecords();
+                return;
+            }
+
+            if (tab === 'novo') {
+                tabNovoBtn.className = "pb-3 px-1 mr-8 text-sm font-semibold text-white border-b-2 border-indigo-500 transition";
+                tabMeusBtn.className = "pb-3 px-1 text-sm font-semibold text-gray-400 hover:text-gray-200 border-b-2 border-transparent transition flex items-center space-x-2";
+                tabNovoContent.classList.remove('hidden');
+                tabMeusContent.classList.add('hidden');
+            } else {
+                tabMeusBtn.className = "pb-3 px-1 mr-8 text-sm font-semibold text-white border-b-2 border-indigo-500 transition flex items-center space-x-2";
+                tabNovoBtn.className = "pb-3 px-1 text-sm font-semibold text-gray-400 hover:text-gray-200 border-b-2 border-transparent transition";
+                tabMeusContent.classList.remove('hidden');
+                tabNovoContent.classList.add('hidden');
+                renderRecords();
+            }
+        }
+
+        function switchRecordSubTab(subTab) {
+            currentRecordSubTab = subTab;
+            currentStatusFilter = 'todos';
+            const btnAbertos = document.getElementById('subTabAbertosBtn');
+            const btnHistorico = document.getElementById('subTabHistoricoBtn');
+            const contentAbertos = document.getElementById('subTabAbertosContent');
+            const contentHistorico = document.getElementById('subTabHistoricoContent');
+
+            if (subTab === 'abertos') {
+                btnAbertos.className = "pb-2.5 text-xs font-bold uppercase tracking-wider text-indigo-400 border-b-2 border-indigo-500 transition flex items-center space-x-2";
+                btnHistorico.className = "pb-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-gray-200 border-b-2 border-transparent transition flex items-center space-x-2";
+                contentAbertos.classList.remove('hidden');
+                contentHistorico.classList.add('hidden');
+            } else {
+                btnHistorico.className = "pb-2.5 text-xs font-bold uppercase tracking-wider text-indigo-400 border-b-2 border-indigo-500 transition flex items-center space-x-2";
+                btnAbertos.className = "pb-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-gray-200 border-b-2 border-transparent transition flex items-center space-x-2";
+                contentHistorico.classList.remove('hidden');
+                contentAbertos.classList.add('hidden');
+            }
+            renderStatusFilters();
+            renderRecords();
+        }
+
+        function renderStatusFilters() {
+            const container = document.getElementById('statusFiltersContainer');
+            let html = '<span class="text-gray-400 font-medium shrink-0">Filtrar Status:</span>';
+
+            if (currentRecordSubTab === 'abertos') {
+                const filtrosAbertos = [
+                    { id: 'todos', label: 'Todos os Status' },
+                    { id: 'Aguardando Suporte', label: 'Aguardando Suporte' },
+                    { id: 'Em andamento', label: 'Em andamento' },
+                    { id: 'Aguardando cliente', label: 'Aguardando cliente' }
+                ];
+                filtrosAbertos.forEach(f => {
+                    const ativo = currentStatusFilter === f.id;
+                    html += `<button onclick="filterByStatus('${f.id}')" class="px-3 py-1 rounded-lg font-semibold transition shrink-0 ${ativo ? 'bg-indigo-600 text-white' : 'bg-[#172033] text-gray-300 border border-[#273551]'}">${f.label}</button>`;
+                });
+            } else {
+                const filtrosHistorico = [
+                    { id: 'todos', label: 'Todos os Status' },
+                    { id: 'Concluído', label: 'Concluído / Resolvido' },
+                    { id: 'Cancelado pedido', label: 'Cancelado' }
+                ];
+                filtrosHistorico.forEach(f => {
+                    const ativo = currentStatusFilter === f.id;
+                    html += `<button onclick="filterByStatus('${f.id}')" class="px-3 py-1 rounded-lg font-semibold transition shrink-0 ${ativo ? 'bg-indigo-600 text-white' : 'bg-[#172033] text-gray-300 border border-[#273551]'}">${f.label}</button>`;
+                });
+            }
+            container.innerHTML = html;
+        }
+
+        function setRadio(field, value, element) {
+            formDataState[field] = value;
+            const buttons = element.parentElement.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'border-indigo-500', 'text-white');
+                btn.classList.add('bg-[#172033]', 'text-gray-300', 'border-[#273551]');
+            });
+            element.classList.remove('bg-[#172033]', 'text-gray-300', 'border-[#273551]');
+            element.classList.add('bg-indigo-600', 'border-indigo-500', 'text-white');
+        }
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                formDataState.imageFile = file;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('uploadPlaceholder').classList.add('hidden');
+                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                    document.getElementById('previewImg').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeImage(event) {
+            event.stopPropagation();
+            formDataState.imageFile = null;
+            document.getElementById('printErro').value = '';
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('uploadPlaceholder').classList.remove('hidden');
+        }
+
+        function previewReplyImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                replyImageFile = file;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('replyFileLabel').innerText = file.name;
+                    document.getElementById('removeReplyImgBtn').classList.remove('hidden');
+                    document.getElementById('replyImgPreviewBox').classList.remove('hidden');
+                    document.getElementById('replyImgPreview').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearReplyImage() {
+            replyImageFile = null;
+            document.getElementById('replyImageInput').value = '';
+            document.getElementById('replyFileLabel').innerText = 'Anexar imagem (opcional)';
+            document.getElementById('removeReplyImgBtn').classList.add('hidden');
+            document.getElementById('replyImgPreviewBox').classList.add('hidden');
+            document.getElementById('replyImgPreview').src = '';
+        }
+
+        // SALVAR NO SUPABASE (STORAGE + TABELA)
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            if (!formDataState.clienteAguardando || !formDataState.pagamentoCobrado || !formDataState.imageFile) {
+                showToast('Preencha todos os campos obrigatórios e anexe o print.');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtnForm');
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Enviando para o Supabase...';
+
+            try {
+                // 1. Upload da imagem para o Supabase Storage
+                const fileExt = formDataState.imageFile.name.split('.').pop();
+                const fileName = `${Date.now()}_${Math.random().toString(36.substring(2, 7))}.${fileExt}`;
+                const filePath = `prints/${fileName}`;
+
+                const { error: uploadError } = await _supabase.storage
+                    .from('chamados-imagens') // Nome do Bucket criado no Supabase
+                    .upload(filePath, formDataState.imageFile);
+
+                if (uploadError) throw uploadError;
+
+                // Obter URL pública da imagem
+                const { data: publicUrlData } = _supabase.storage
+                    .from('chamados-imagens')
+                    .getPublicUrl(filePath);
+
+                const imageUrl = publicUrlData.publicUrl;
+
+                // 2. Inserir dados do chamado na tabela do Supabase
+                const newRecord = {
+                    id: 'REG-' + Math.floor(1000 + Math.random() * 9000),
+                    call_type: currentCallType,
+                    filial: document.getElementById('filial').value,
+                    numero_pedido: document.getElementById('numeroPedido').value,
+                    canal: document.getElementById('canal').value,
+                    tipo_erro: document.getElementById('tipoErro').value,
+                    mensagem_sistema: document.getElementById('mensagemSistema').value,
+                    cliente_aguardando: formDataState.clienteAguardando,
+                    pagamento_cobrado: formDataState.pagamentoCobrado,
+                    o_que_precisa: document.getElementById('oQuePrecisa').value,
+                    observacoes: document.getElementById('observacoes').value,
+                    image_url: imageUrl,
+                    created_by: loggedUser.name,
+                    urgency: formDataState.clienteAguardando === 'Sim' ? 'Urgente' : 'Normal',
+                    status: 'Aguardando Suporte',
+                    last_support_status: 'Em andamento',
+                    messages: []
+                };
+
+                const { error: insertError } = await _supabase
+                    .from('chamados')
+                    .insert([newRecord]);
+
+                if (insertError) throw insertError;
+
+                showToast('Chamado registrado com sucesso na nuvem!');
+                resetForm();
+                await carregarRegistrosDoSupabase();
+                switchTab('meus');
+            } catch (err) {
+                console.error(err);
+                showToast('Erro ao salvar no Supabase. Verifique o console.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Registrar';
+            }
+        }
+
+        // CARREGAR REGISTROS DO SUPABASE
+        async function carregarRegistrosDoSupabase() {
+            try {
+                const { data, error } = await _supabase
+                    .from('chamados')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                records = (data || []).map(r => ({
+                    id: r.id,
+                    callType: r.call_type,
+                    filial: r.filial,
+                    numeroPedido: r.numero_pedido,
+                    canal: r.canal,
+                    tipoErro: r.tipo_erro,
+                    mensagemSistema: r.mensagem_sistema,
+                    clienteAguardando: r.cliente_aguardando,
+                    pagamentoCobrado: r.pagamento_cobrado,
+                    oQuePrecisa: r.o_que_precisa,
+                    observacoes: r.observacoes,
+                    imageBase64: r.image_url, // Mantém a compatibilidade do campo para exibição
+                    createdAt: new Date(r.created_at).toLocaleString('pt-BR'),
+                    createdBy: r.created_by,
+                    urgency: r.urgency,
+                    status: r.status,
+                    lastSupportStatus: r.last_support_status,
+                    messages: r.messages || []
+                }));
+
+                updateBadgeCount();
+                renderRecords();
+            } catch (err) {
+                console.error("Erro ao carregar chamados:", err);
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('errorForm').reset();
+            formDataState.clienteAguardando = null;
+            formDataState.pagamentoCobrado = null;
+            formDataState.imageFile = null;
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('uploadPlaceholder').classList.remove('hidden');
+            document.querySelectorAll('.radio-btn-cliente, .radio-btn-pagamento').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'border-indigo-500', 'text-white');
+                btn.classList.add('bg-[#172033]', 'text-gray-300', 'border-[#273551]');
+            });
+        }
+
+        function updateBadgeCount() {
+            document.getElementById('badgeCount').innerText = records.length;
+        }
+
+        let currentFilter = 'todos';
+        function filterRecords(filter) {
+            currentFilter = filter;
+            const btnAll = document.getElementById('filterAll');
+            const btnUrgente = document.getElementById('filterUrgente');
+            if (filter === 'todos') {
+                btnAll.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition";
+                btnUrgente.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#172033] text-gray-300 hover:bg-[#202c44] border border-[#273551]";
+            } else {
+                btnUrgente.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition";
+                btnAll.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#172033] text-gray-300 hover:bg-[#202c44] border border-[#273551]";
+            }
+            renderRecords();
+        }
+
+        function filterByStatus(status) {
+            currentStatusFilter = status;
+            renderStatusFilters();
+            renderRecords();
+        }
+
+        function exportToExcel() {
+            if (records.length === 0) {
+                showToast('Nenhum registro para exportar.');
+                return;
+            }
+
+            let csvContent = "\uFEFF"; 
+            csvContent += "ID;Tipo de Chamado;Filial;Nº Pedido;Canal;Tipo de Erro;Mensagem Exata;Cliente Aguardando;Pagamento Cobrado;O que Precisa;Status;Criado Por;Data;Observações\n";
+
+            records.forEach(r => {
+                const obs = (r.observacoes || '').replace(/[\n\r]+/g, ' ');
+                const msgSistema = (r.mensagemSistema || '').replace(/[\n\r]+/g, ' ');
+                csvContent += `"${r.id}";"${r.callType}";"${r.filial}";"\t${r.numeroPedido}";"${r.canal}";"${r.tipoErro}";"${msgSistema}";"${r.clienteAguardando}";"${r.pagamentoCobrado}";"${r.oQuePrecisa}";"${r.status}";"${r.createdBy}";"${r.createdAt}";"${obs}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `chamados_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('Planilha Excel exportada!');
+        }
+
+        function renderRecords() {
+            const openContainer = document.getElementById('openRecordsContainer');
+            const closedContainer = document.getElementById('closedRecordsContainer');
+            const emptyOpenState = document.getElementById('emptyOpenState');
+            const emptyClosedState = document.getElementById('emptyClosedState');
+            const emptyState = document.getElementById('emptyState');
+
+            openContainer.innerHTML = '';
+            closedContainer.innerHTML = '';
+
+            let filtered = records;
+            if (currentFilter === 'Urgente') filtered = records.filter(r => r.urgency === 'Urgente');
+
+            if (currentStatusFilter !== 'todos') {
+                filtered = filtered.filter(r => {
+                    if (currentStatusFilter === 'Concluído') return r.status === 'Concluído' || r.status === 'Resolvido';
+                    return r.status === currentStatusFilter;
+                });
+            }
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                emptyOpenState.classList.add('hidden');
+                emptyClosedState.classList.add('hidden');
+                document.getElementById('openCountBadgeTab').innerText = '0';
+                document.getElementById('closedCountBadgeTab').innerText = '0';
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            const openList = filtered.filter(r => !['Concluído', 'Resolvido', 'Cancelado pedido'].includes(r.status));
+            const closedList = filtered.filter(r => ['Concluído', 'Resolvido', 'Cancelado pedido'].includes(r.status));
+
+            document.getElementById('openCountBadgeTab').innerText = openList.length;
+            document.getElementById('closedCountBadgeTab').innerText = closedList.length;
+
+            emptyOpenState.classList.toggle('hidden', openList.length > 0);
+            emptyClosedState.classList.toggle('hidden', closedList.length > 0);
+
+            openList.forEach(rec => openContainer.appendChild(createRecordCard(rec)));
+            closedList.forEach(rec => closedContainer.appendChild(createRecordCard(rec)));
+        }
+
+        function createRecordCard(rec) {
+            let statusColor = 'bg-amber-950/65 text-amber-400 border-amber-900/55';
+            if (rec.status === 'Em andamento') statusColor = 'bg-blue-950/65 text-blue-400 border-blue-900/55';
+            else if (rec.status === 'Aguardando cliente') statusColor = 'bg-purple-950/65 text-purple-400 border-purple-900/55';
+            else if (rec.status === 'Concluído' || rec.status === 'Resolvido') statusColor = 'bg-emerald-950/65 text-emerald-400 border-emerald-900/55';
+            else if (rec.status === 'Cancelado pedido') statusColor = 'bg-red-950/65 text-red-400 border-red-900/55';
+
+            const card = document.createElement('div');
+            card.className = "bg-[#111726] border border-[#1b263b] hover:border-[#2a3c5a] rounded-2xl p-5 transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md";
+            card.innerHTML = `
+                <div class="flex items-start space-x-4">
+                    <img src="${rec.imageBase64}" alt="Print" class="w-16 h-16 rounded-xl object-cover border border-[#273551] shrink-0">
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2 flex-wrap gap-1">
+                            <span class="text-xs font-bold text-indigo-400">${rec.id}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${statusColor}">${rec.status || 'Aguardando Suporte'}</span>
+                            <span class="text-xs text-gray-400">• ${rec.callType}</span>
+                        </div>
+                        <h4 class="text-sm font-bold text-white">${rec.tipoErro} - Pedido: <span class="font-mono">${rec.numeroPedido}</span></h4>
+                        <p class="text-xs text-gray-400">Filial: <strong class="text-gray-200">${rec.filial}</strong> | Canal: <strong class="text-gray-200">${rec.canal}</strong></p>
+                        <p class="text-[11px] text-gray-500">Aberto por: <span class="text-gray-300 font-medium">${rec.createdBy || 'Sistema'}</span> em ${rec.createdAt}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3 w-full sm:w-auto justify-end pt-3 sm:pt-0 border-t sm:border-t-0 border-[#1b263b]">
+                    <button onclick="viewDetail('${rec.id}')" class="px-4 py-2 bg-[#172033] hover:bg-[#202c44] border border-[#273551] rounded-xl text-xs font-semibold text-gray-200 transition">
+                        Gerenciar / Visualizar
+                    </button>
+                </div>
+            `;
+            return card;
+        }
+
+        function viewDetail(id) {
+            const rec = records.find(r => r.id === id);
+            if (!rec) return;
+
+            activeRecordId = id;
+            document.getElementById('modalId').innerText = rec.id + ' — ' + rec.callType;
+            document.getElementById('modalTitle').innerText = rec.tipoErro;
+            document.getElementById('modalFilial').innerText = rec.filial;
+            document.getElementById('modalPedido').innerText = rec.numeroPedido;
+            document.getElementById('modalCanal').innerText = rec.canal;
+            document.getElementById('modalClienteAguardando').innerText = rec.clienteAguardando || '--';
+            document.getElementById('modalPagamentoCobrado').innerText = rec.pagamentoCobrado || '--';
+            document.getElementById('modalOQuePrecisa').innerText = rec.oQuePrecisa || '--';
+            document.getElementById('modalObservacoes').innerText = rec.observacoes || 'Nenhuma observação.';
+            document.getElementById('modalMensagem').innerText = rec.mensagemSistema;
+            document.getElementById('modalImg').src = rec.imageBase64;
+            document.getElementById('fullScreenImg').src = rec.imageBase64;
+            document.getElementById('modalData').innerText = rec.createdAt;
+            
+            renderMessagesDisplay(rec);
+
+            const supportControlPanel = document.getElementById('supportControlPanel');
+            const operationActionPanel = document.getElementById('operationActionPanel');
+
+            if (loggedUser && loggedUser.role === 'Suporte') {
+                supportControlPanel.classList.remove('hidden');
+                operationActionPanel.classList.add('hidden');
+            } else {
+                supportControlPanel.classList.add('hidden');
+                const isClosed = ['Concluído', 'Resolvido', 'Cancelado pedido'].includes(rec.status);
+                operationActionPanel.classList.toggle('hidden', isClosed);
+            }
+
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function renderMessagesDisplay(rec) {
+            const display = document.getElementById('modalSupportNotesDisplay');
+            if (!rec.messages || rec.messages.length === 0) {
+                display.innerHTML = '<span class="text-gray-500">Nenhuma mensagem ainda.</span>';
+                return;
+            }
+
+            let html = '';
+            rec.messages.forEach(m => {
+                const isSupport = m.sender === 'Suporte';
+                const badgeClass = isSupport ? 'bg-indigo-950 text-indigo-300 border-indigo-900' : 'bg-blue-950 text-blue-300 border-blue-900';
+                html += `
+                    <div class="p-2.5 rounded-lg bg-[#111726] border border-[#222f49] space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeClass}">${m.sender}</span>
+                            <span class="text-[10px] text-gray-500">${m.timestamp}</span>
+                        </div>
+                        <p class="text-xs text-gray-200 whitespace-pre-wrap">${m.text}</p>
+                    </div>
+                `;
+            });
+            display.innerHTML = html;
+        }
+
+        async function updateTicketStatus(status) {
+            if (!activeRecordId) return;
+            const rec = records.find(r => r.id === activeRecordId);
+            if (!rec) return;
+
+            const { error } = await _supabase
+                .from('chamados')
+                .update({ status: status, last_support_status: status })
+                .eq('id', activeRecordId);
+
+            if (error) {
+                showToast('Erro ao atualizar status.');
+                return;
+            }
+
+            showToast(`Status alterado para: ${status}`);
+            await carregarRegistrosDoSupabase();
+            viewDetail(activeRecordId);
+        }
+
+        async function sendSupportMessage() {
+            if (!activeRecordId) return;
+            const rec = records.find(r => r.id === activeRecordId);
+            const msgText = document.getElementById('modalSupportNotes').value.trim();
+            if (!msgText && !replyImageFile) return;
+
+            let newMessages = rec.messages || [];
+            newMessages.push({
+                sender: loggedUser.role === 'Suporte' ? 'Suporte' : 'Operação',
+                text: msgText || 'Enviou um anexo.',
+                timestamp: new Date().toLocaleString('pt-BR')
+            });
+
+            let novoStatus = loggedUser.role === 'Suporte' ? 'Aguardando cliente' : (rec.lastSupportStatus || 'Aguardando Suporte');
+
+            const { error } = await _supabase
+                .from('chamados')
+                .update({ messages: newMessages, status: novoStatus })
+                .eq('id', activeRecordId);
+
+            if (error) {
+                showToast('Erro ao enviar mensagem.');
+                return;
+            }
+
+            document.getElementById('modalSupportNotes').value = '';
+            clearReplyImage();
+            showToast('Mensagem enviada!');
+            await carregarRegistrosDoSupabase();
+            viewDetail(activeRecordId);
+        }
+
+        async function operationCancelOrder() {
+            if (!activeRecordId) return;
+            const rec = records.find(r => r.id === activeRecordId);
+            const reason = document.getElementById('cancelReasonInput').value.trim();
+            if (!reason) {
+                showToast('Informe o motivo do cancelamento.');
+                return;
+            }
+
+            let newMessages = rec.messages || [];
+            newMessages.push({
+                sender: 'Operação',
+                text: `Pedido cancelado. Motivo: ${reason}`,
+                timestamp: new Date().toLocaleString('pt-BR')
+            });
+
+            const { error } = await _supabase
+                .from('chamados')
+                .update({ status: 'Cancelado pedido', messages: newMessages })
+                .eq('id', activeRecordId);
+
+            if (error) {
+                showToast('Erro ao cancelar pedido.');
+                return;
+            }
+
+            showToast('Pedido cancelado com sucesso.');
+            closeModal();
+            await carregarRegistrosDoSupabase();
+        }
+
+        async function operationResolveOrder() {
+            if (!activeRecordId) return;
+            const rec = records.find(r => r.id === activeRecordId);
+
+            let newMessages = rec.messages || [];
+            newMessages.push({
+                sender: 'Operação',
+                text: 'Pedido OK / Resolvido.',
+                timestamp: new Date().toLocaleString('pt-BR')
+            });
+
+            const { error } = await _supabase
+                .from('chamados')
+                .update({ status: 'Resolvido', messages: newMessages })
+                .eq('id', activeRecordId);
+
+            if (error) {
+                showToast('Erro ao finalizar pedido.');
+                return;
+            }
+
+            showToast('Pedido marcado como resolvido!');
+            closeModal();
+            await carregarRegistrosDoSupabase();
+        }
+
+        function openImageViewer() {
+            document.getElementById('imageViewModal').classList.remove('hidden');
+        }
+
+        function closeImageViewer() {
+            document.getElementById('imageViewModal').classList.add('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            activeRecordId = null;
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = message;
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => { toast.classList.add('translate-y-24', 'opacity-0'); }, 3500);
+        }
+    </script>
+</body>
+</html>
